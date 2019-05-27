@@ -1,0 +1,55 @@
+.task-head{
+    height: 30px;
+}
+.task-title{
+    height: 50px;
+    line-height: 50px;
+    padding: 0 33px;
+    text-align: center;
+}
+.task-title span{
+    font-family: 'Arial Normal', 'Arial';
+    font-weight: 400;
+    font-style: normal;
+    font-size: 28px;
+    color: #000000;
+}
+.task-table{
+    padding: 3px 33px;
+}
+#projectList th{
+    background-color: #1ca04c;
+    text-align: center;
+    font-family: 'Arial Negreta', 'Arial Normal', 'Arial';
+    font-weight: 700;
+    font-style: normal;
+    font-size: 18px;
+    color: #FFFFFF;
+}
+#projectList td{
+    text-align: center;
+    vertical-align: middle!important;
+
+}
+.messageCon{
+    width: 50%;
+    margin:0 auto ;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(242, 242, 242, 1) 0%, rgba(228, 228, 228, 1) 100%, rgba(255, 255, 255, 1) 100%);
+    border-radius: 10px;
+    padding: 30px 0 ;
+}
+label{
+    font-family: 'Arial Negreta', 'Arial Normal', 'Arial';
+    font-weight: 700!important;
+    font-style: normal;
+    font-size: 16px!important;
+    color: #000000;
+}
+.col-sm-8{
+    padding-top: 7px;
+    opacity: 0.8;
+}
+.form-group{
+    margin-top:10px;
+    margin-left: 16%;
+}

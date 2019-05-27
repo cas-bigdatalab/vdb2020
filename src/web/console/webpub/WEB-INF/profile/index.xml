@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+
+<beans>
+	<bean class="vdb.mydb.widget.WidgetLayout">
+		<property name="layout" value="l121" />
+		<property name="columns">
+			<map>
+				<entry key="column3">
+					<list>
+						<value>csdbarea</value>
+						<value>cms</value>
+						<value>chart</value>
+						<value>service</value>
+						<value>dataQuality</value>
+						<value>consult</value>
+					</list>
+				</entry>
+				<entry key="column2">
+					<list>
+						<value>dbintro</value>
+						<value>photo</value>
+						<value>commenddb</value>
+						<value>csdbnews</value>
+						<value>rssSina</value>
+					</list>
+				</entry>
+				<entry key="column1">
+					<list>
+						<value>login</value>
+						<value>catalog</value>
+						<value>weather</value>
+						<value>metadata</value>
+						<value>contactInfo</value>
+						<value>advice</value>
+						<value>question</value>
+					</list>
+				</entry>
+			</map>
+		</property>
+	</bean>
+</beans>
+

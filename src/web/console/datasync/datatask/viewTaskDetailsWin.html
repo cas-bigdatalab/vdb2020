@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>任务详情</title>
+
+    <style>
+
+    </style>
+</head>
+
+<body>
+<!-- 模态框（Modal） -->
+//file文件任务预览
+<div id="fileModal" class="modal fade" tabindex="-1" data-width="400">
+    <div class="modal-dialog" style="top:10% !important;">
+        <div class="modal-content">
+            <div class="modal-header bg-primary">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title">任务详情查看</h4>
+            </div>
+            <div class="modal-body">
+                <form class="form-horizontal">
+                    <div class="form-group">
+                        <label  class="col-sm-3 control-label">任务标识:</label>
+                        <div class="col-sm-8 modediv" id="file-dataTaskName" style="padding-top: 4px;"></div>
+                    </div>
+                    <div class="form-group">
+                        <label  class="col-sm-3 control-label">数据源:</label>
+                        <div class="col-sm-8 modediv" id="file-dataSourceName" style="padding-top: 4px;"></div>
+                    </div>
+                    <div class="form-group">
+                        <label  class="col-sm-3 control-label">文件路径:</label>
+                        <div class="col-sm-8 modediv" id="file-filePath" style="min-height: 30px;max-height: 120px;overflow: auto;padding-top: 4px;"></div>
+                    </div>
+                    <div class="form-group">
+                        <label  class="col-sm-3 control-label">创建时间:</label>
+                        <div class="col-sm-8 modediv" id="file-createTime" style="padding-top: 4px;"></div>
+                    </div>
+                    <div class="form-group">
+                        <label  class="col-sm-3 control-label">创建者:</label>
+                        <div class="col-sm-8 modediv" id="file-creator" style="padding-top: 4px;"></div>
+                    </div>
+                    <div class="form-group">
+                        <label  class="col-sm-3 control-label">任务状态:</label>
+                        <div class="col-sm-8 modediv" id="file-status" style="padding-top: 4px;"></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" data-dismiss="modal" class="btn  btn-danger">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+//数据库任务预览
+<div id="dataModal" class="modal fade" tabindex="-1" data-width="400">
+    <div class="modal-dialog" style="top: 10% !important;">
+        <div class="modal-content">
+            <div class="modal-header bg-primary">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title">任务详情查看</h4>
+            </div>
+            <div class="modal-body">
+                <form class="form-horizontal">
+                    <div class="form-group">
+                        <label  class="col-sm-3 control-label">任务标识:</label>
+                        <div class="col-sm-8 modediv" id="pre-dataTaskName" style="padding-top: 4px;"></div>
+                    </div>
+                    <div class="form-group">
+                        <label  class="col-sm-3 control-label">数据源:</label>
+                        <div class="col-sm-8 modediv" id="pre-dataSourceName" style="padding-top: 4px;"></div>
+                    </div>
+                    <div class="form-group">
+                        <label  class="col-sm-3 control-label">表名:</label>
+                        <div class="col-sm-8 modediv" id="pre-tableName"style="min-height: 20px;max-height: 40px;overflow: auto;padding-top: 4px;"></div>
+                    </div>
+                    <div class="form-group">
+                        <label  class="col-sm-3 control-label">SQL语句:</label>
+                        <div class="col-sm-8 modediv" id="pre-sqlString" style="min-height: 20px;max-height: 120px;overflow: auto;padding-top: 4px;"></div>
+                    </div>
+                    <div class="form-group">
+                        <label  class="col-sm-3 control-label">逻辑表名:</label>
+                        <div class="col-sm-8 modediv" id="pre-sqlTableNameEn" style="padding-top: 4px;"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label  class="col-sm-3 control-label">创建时间:</label>
+                        <div class="col-sm-8 modediv" id="pre-createTime" style="padding-top: 4px;"></div>
+                    </div>
+                    <div class="form-group">
+                        <label  class="col-sm-3 control-label">创建者:</label>
+                        <div class="col-sm-8 modediv" id="pre-creator" style="padding-top: 4px;"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label  class="col-sm-3 control-label">任务状态:</label>
+                        <div class="col-sm-8 modediv" id="pre-status" style="padding-top: 4px;"></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <!--<button type="button" class="btn green" data-dismiss="modal" ><i-->
+                        <!--class="glyphicon glyphicon-ok"></i>确认-->
+                <!--</button>-->
+                <button type="button" data-dismiss="modal" class="btn  btn-danger">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+
+    start();//启动-初始化
+    function start() {
+        var taskId=this.document.activeElement.contentDocument.getElementById("taskIdHidden").value;
+        $.ajax({
+            type: "post",
+            url:"/searchTaskDetailById.do",
+            cache: false,
+            data: {taskId: taskId},
+            beforeSend:function(data){
+                index = layer.load(1, {
+                    shade: [0.5,'#fff'] //0.1透明度的白色背景
+                });
+            },
+            success: function(data) {
+                if("file"==JSON.parse(data).dataTask.dataTaskType){
+                   $("#file-createTime").html(new Date(JSON.parse(data).dataTask.createTime).toLocaleDateString().replace(/\//g, "-")+" "+new Date(JSON.parse(data).dataTask.createTime).toLocaleTimeString().replace(/\//g, "-"));
+                   $("#file-dataSourceName").html(JSON.parse(data).dataTask.dataSrc.dataSourceName);
+                   $("#file-dataTaskName").html(JSON.parse(data).dataTask.dataTaskName);
+                   $("#file-creator").html(JSON.parse(data).dataTask.creator);
+                   $("#file-status").html(JSON.parse(data).dataTask.status=="0"?"未上传":"上传成功");
+                   $("#file-filePath").html(JSON.parse(data).dataTask.filePath.replace(/;/g,"<br/>"));//<br/>
+
+                    // console.log(JSON.parse(data).dataTask.filePath);
+                    // var fo=new ActiveXObject(Scripting.FileSystem)
+                    // debugger
+                   $("#fileModal").modal("show");
+                    $("#layui-layer-shade"+index+"").remove();
+                    $("#layui-layer"+index+"").remove();
+                }else{
+                    $("#pre-dataTaskName").html(JSON.parse(data).dataTask.dataTaskName);
+                    $("#pre-dataSourceName").html(JSON.parse(data).dataTask.dataSrc.dataSourceName);
+                    $("#pre-tableName").html(JSON.parse(data).dataTask.tableName);
+                    $("#pre-sqlString").html(JSON.parse(data).dataTask.sqlString);
+                    $("#pre-sqlTableNameEn").html(JSON.parse(data).dataTask.sqlTableNameEn);
+                    $("#pre-createTime").html(new Date(JSON.parse(data).dataTask.createTime).toLocaleDateString().replace(/\//g, "-")+" "+new Date(JSON.parse(data).dataTask.createTime).toLocaleTimeString().replace(/\//g, "-"));
+                    $("#pre-creator").html(JSON.parse(data).dataTask.creator);
+                    $("#pre-status").html(JSON.parse(data).dataTask.status=="0"?"未上传":"上传成功");
+                    $("#dataModal").modal("show");
+                    $("#layui-layer-shade"+index+"").remove();
+                    $("#layui-layer"+index+"").remove();
+                }
+            },
+            error: function() {
+                alert("出错了");
+            }
+        });
+    };
+
+    $("#fileModal").on("hide.bs.modal",function(){
+        if(isIE()||isIE11()){
+            $(window.top.document.body)[0].ownerDocument.getElementById("pages").removeNode(true);
+            $(window.top.document.body)[0].ownerDocument.getElementById("backdropId").removeNode(true);
+        }else{
+            $(window.top.document.body)[0].ownerDocument.getElementById("pages").remove();
+            $(window.top.document.body)[0].ownerDocument.getElementById("backdropId").remove();
+        }
+
+    });
+    $("#dataModal").on("hide.bs.modal",function(){
+        if(isIE()||isIE11()){
+            $(window.top.document.body)[0].ownerDocument.getElementById("pages").removeNode(true);
+            $(window.top.document.body)[0].ownerDocument.getElementById("backdropId").removeNode(true);
+        }else{
+            $(window.top.document.body)[0].ownerDocument.getElementById("pages").remove();
+            $(window.top.document.body)[0].ownerDocument.getElementById("backdropId").remove();
+        }
+
+    });
+
+
+    function isIE(){
+        if(!!window.ActiveXObject || "ActiveXObject" in window){
+            return true;
+        }else{
+            return false;
+        }
+    }
+    function isIE11(){
+        if((/Trident\/7\./).test(navigator.userAgent)){
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+</script>
+</body>
+
+</html>

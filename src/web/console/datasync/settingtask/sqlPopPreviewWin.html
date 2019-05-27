@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Title of the document</title>
+    </head>
+
+    <body>
+    <!-- 模态框（Modal） -->
+    <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" style="z-index:99999">
+        <div class="modal-dialog" style="width: 80%;height:53%;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+                        &times;
+                    </button>
+                    <h4 class="modal-title" id="myModalLabel">
+                        表数据预览
+                    </h4>
+                </div>
+                <div class="modal-body">
+                    <table id="table" class="table table-bordered table-hover table-striped" style="text-overflow: ellipsis;overflow: hidden;white-space: nowrap;">
+
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">关闭
+                    </button>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal -->
+    </div>
+    <script>
+
+        searchDataBySql();
+        function searchDataBySql(){
+            var connData=this.document.activeElement.contentDocument.getElementById("connData").value;
+            var sql=this.document.activeElement.contentDocument.getElementById("sql").value;
+            $.ajax({
+                type:"POST",
+                url:"/searchDataBySql.do",
+                cache: false,
+                data:{
+                    connData:connData,
+                    sql:sql
+                },
+                success:function (data) {
+                    if(data.trim()=="sql语句错误！"){
+                        $(window.top.document.body)[0].ownerDocument.getElementById("pages").remove();
+                        $(window.top.document.body)[0].ownerDocument.getElementById("backdropId").remove();
+                        toastr["error"]("SQL语句或表名错误！\n请检查sql语句及表名称是否正确");
+                        // alert("SQL语句或表名错误！\n请检查sql语句及表名称是否正确");
+                    }else{
+                        $('#myModal').modal('show');
+                        var dataArray=data.split("?*$*?");
+                        if(dataArray.length>=2){
+                            dataList=null;
+                            columnsList=null;
+                            dataList=eval(dataArray[0]);
+                            columnsList=eval(dataArray[1]);
+                            loadPreviewBySql(dataList,columnsList);
+                        }
+                    }
+                },
+                error:function () {
+                    console.log("请求失败")
+                }
+            })
+        };
+
+        function loadPreviewBySql(dataList,columnsList){//加载sql预览
+            $('#table').bootstrapTable('destroy');
+            $('#table').bootstrapTable({
+                striped: true,
+                pagination: true,
+                sortable: true,
+                sortOrder: "asc",
+                pageNumber: 1,
+                pageSize: 10,                       //每页的记录行数（*）
+                //pageList: [ 25, 50, 100],
+                minimumCountColumns: 5,
+                search:false,
+                showRefresh:false,
+                uniqueId: "no",
+                locale: "zh-CN",
+                searchOnEnterKey:true,
+                detailView: false,
+                columns:columnsList
+            });
+            $('#table').bootstrapTable('load', dataList);
+        };
+
+         $("#myModal").on("hide.bs.modal",function(){
+             $(window.top.document.body)[0].ownerDocument.getElementById("pages").remove();
+             $(window.top.document.body)[0].ownerDocument.getElementById("backdropId").remove();
+         });
+
+    </script>
+    </body>
+
+</html>

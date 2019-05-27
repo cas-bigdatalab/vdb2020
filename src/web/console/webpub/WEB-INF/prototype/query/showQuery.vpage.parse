@@ -1,0 +1,68 @@
+﻿<!--created by VdbPublisher at $date.get('yyyy-MM-dd HH:mm:ss')-->
+\#set($title="${domain.title}-$query.title")
+#saveAs("view/showQuery[${query.uri}].vpage")
+\#usingLayout("${pageroot}/layout.vpage")
+\#set(${D}entity = ${D}tool.getEntity('$query.entity.uri'))
+\#set($seqid=${D}seq.id)
+
+#set($layoutName = "showEntity")
+#set($isViewMode = true)
+
+#set($widgetLayout = $widgetTool.getWidgetLayoutDAO().loadWidgetLayout($layoutName))
+#set($layout = $widgetLayout.layoutPattern.name)
+
+#set($colMap = $widgetTool.getLayoutPatternManager().getLayoutPattern($layout).columns)
+<div id="wrap" style="width:970px;margin:auto;text-align:left;border:0px solid white">
+	#foreach ($wl in $colMap.keySet())
+	#set($divMargin = "5px")
+	#set($column = $velocityCount)
+	#if($colMap.keySet().size() == $velocityCount)
+		#set($divMargin = "0px")
+	#end
+		<div id='$wl' style='width:$colMap.get($wl)px;margin-right:$divMargin;float:left; min-height:100px;'>
+			#set($widgetlist = $widgetLayout.columns.get($wl))
+			#foreach ($wid in $widgetlist)
+				#set($num = $velocityCount)
+				<dl  id='$wid'  class='baseball'>
+					#set($widgetName = $wid)
+					#set($widgetWidth = $convert.parseNumber($colMap.get($wl)))
+					#if($widgetName!="showEntity")
+						#parse("/console/webpub/renderWidgetBody.vpage")
+					#else
+						<table width="90%" border="0" height="1" align="center">
+						  <tr>
+						    <td><div align="center" class="title">$!{query.title}</div>
+						      <div style="width:90%" align="left">$!{query.description}</div>
+						      <div style="height:20"></div>
+						      <div id="DataGrid${seqid}" class="DataGrid"></div> 
+						      <div style="height:20"></div>
+						    </td>
+						  </tr>
+						</table>
+						<script DEFER>
+							//定义一个查询对象
+							var jsoQuery = new Query('${query.entity.uri}');
+							jsoQuery.pageSize = ${domain.defaultPageSize};
+							
+							//request参数
+							${H}foreach(${D}name in ${D}request.parameterNames)
+								jsoQuery.setVariable('${D}name', '${D}request.getParameter(${D}name)');
+							${H}end
+							
+							//定义一个数据网格
+							var jsoDataGrid = new DataGrid(jsoQuery, $('#DataGrid${seqid}')[0]);
+							jsoDataGrid.urlDoQuery = '${pageroot}/view/doQuery[${query.uri}].vpage';
+							jsoDataGrid.refresh();
+						</script>
+						
+					#end
+				</dl>	
+			#end
+		</div>
+	#end
+</div>
+
+<!--如果gotoPage变量不为空-->
+\#if(!${D}param.gotoPage)
+${D}loggerTool.logAccess(null,null,${D}entity,'showQuery',null,null,false)
+\#end

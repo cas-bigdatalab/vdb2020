@@ -1,0 +1,15 @@
+#set($view = $domain.ex.getView("editDataSets").items)
+$response.setContentType("text/xml")
+<?xml version='1.0' encoding='UTF-8'?>
+<tree id='0' >
+#foreach($ds in $view)
+	<item child='1'  text='$ds.title' id='directory@$ds.id'>
+	##set($tables = $ds.ex.getView("editEntities").items)
+	##foreach($obj in $tables)
+	##	#if (!$obj.isQuery())
+	##	<item text='$obj.title' id='$obj.uri'/>
+	##	#end
+	##end
+	</item>
+#end
+</tree>

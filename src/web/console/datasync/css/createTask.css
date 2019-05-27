@@ -1,0 +1,82 @@
+.task-head{
+    height: 50px;
+    line-height: 50px;
+    font-size: 18px;
+    color: #999999;
+}
+.task-title{
+    height: 50px;
+    line-height: 50px;
+    padding: 0 33px;
+    margin-bottom: 10px;
+}
+.task-title span{
+    font-family: 'Arial Normal', 'Arial';
+    font-weight: 400;
+    font-style: normal;
+    font-size: 28px;
+    color: #000000;
+}
+.select-way{
+    margin-top: 60px;
+    font-family: 'Arial Negreta', 'Arial Normal', 'Arial';
+    font-weight: 700;
+    font-style: normal;
+    font-size: 18px;
+    padding: 0 33px;
+    color: #1CA04C;
+}
+.select-way label{
+    font-weight: 800;
+}
+.select-way span{
+    color: #000000;
+    margin-right: 30px;
+}
+.select-ways{
+    padding: 0 70px;
+    margin-top: 50px;
+}
+.database-con-rel,.database-con-file{
+    margin-top: 20px;
+    line-height: 34px;
+    text-align: left;
+}
+.dataHead1{
+    font-family: 'Arial Normal', 'Arial';
+    font-weight: 400;
+    font-style: normal;
+    font-size: 22px;
+    color: #1CA04C;
+    height: 65px;
+    background-color: rgba(228, 228, 228, 1);
+    line-height: 65px;
+    text-align: left;
+}
+.dataHead2{
+    height: 65px;
+    font-size: 20px;
+    color: #000000;
+    font-family: 'Microsoft YaHei UI';
+    background-color: rgba(228, 228, 228, 1);
+    line-height: 65px;
+    text-align: left;
+}
+
+.dataHead3{
+    font-size: 20px;
+    color: #000000;
+    font-family: 'Microsoft YaHei UI';
+    background-color: rgba(228, 228, 228, 1);
+    line-height: 65px;
+    text-align: left;
+}
+.dataHead4{
+    font-size: 15px;
+    line-height: 28px;
+    margin-top: 20px;
+}
+.select-local .left,.select-local .right{
+    float: left;
+    width: 50%;
+}

@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>任务详情</title>
+    <link type="text/css" rel="stylesheet" href="/console/shared/zTree_v3/css/demo.css" />
+    <link type="text/css" rel="stylesheet" href="/console/shared/zTree_v3/css/zTreeStyle/zTreeStyle.css" />
+    <link type="text/css" rel="stylesheet" href="/console/datasync/css/editorLoadingCss.css" />
+    <style>
+        .modal-dialog{
+            top:4% !important;
+            width: 64% !important;
+        }
+
+        ul.ztree {
+            width: 100%;
+            height: 93%;
+        }
+        #Progress{
+            left: 45% !important;
+            top:  24% !important;
+        }
+        .circle-info{
+            top:58% !important;
+            line-height: 1.5 !important;
+            z-index: 19891019;
+        }
+        div#rMenu {position:absolute; visibility:hidden; top:0; background-color: #555;text-align: left;padding: 2px;}
+        div#rMenu ul li{
+            margin: 1px 0;
+            padding: 0 5px;
+            cursor: pointer;
+            list-style: none outside none;
+            background-color: #DFDFDF;
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- 模态框（Modal） -->
+<div id="dataModal" class="modal fade" tabindex="-1" data-width="400">
+    <div class="modal-dialog" >
+        <div class="modal-content">
+            <div class="modal-header bg-primary">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="taskEditorTitle"></h4>
+            </div>
+            <div class="modal-body" style="min-height:300px;max-height:76%;overflow: auto;">
+                    <!--本地数据源列表-->
+                    <div id="bdsc" style="width: 90%;margin-left: 112px;">
+                        <div style="" class="form-group">
+                            <label>本地数据源列表:</label>
+                            <select id="selectBdDirID"  class="form-control selectpicker" style="width: 200px;display: inline !important;"></select>
+                            <div class="content_wrap" style="width: 89%;">
+                                <label id="bdTableLabel">&nbsp;&nbsp;请选择资源</label>
+                                <div id="ViewBdDirDiv" style="margin-left: 15px;overflow-y:auto;max-height: 450px;min-height: 300px;width:43%;float: left;">
+                                    <ul id="treeDemo" class="ztree"></ul>
+                                </div>
+                                <div id="ViewRemoteDirDiv" style="margin-left: 60px;overflow-y:auto;max-height: 450px;min-height: 300px;width:43%;float: left;">
+                                    <ul id="remoteTree" class="ztree"></ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <div id="rMenu">
+                    <ul>
+                        <li id="m_add" onclick="addTreeNode(this);">增加文件夹</li>
+                        <li id="m_del" onclick="removeTreeNode();">删除文件夹</li>
+                        <li id="m_reset" onclick="resetTree();">恢复初始目录</li>
+                    </ul>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" onclick="submitLocalFileData()" class="btn  btn-danger">保存</button>
+                    <button type="button" data-dismiss="modal" class="btn  btn-danger">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="createFileMModal" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content" style="width: 36%;top: 166px;margin: 0 auto;">
+            <div class="modal-header" style="height: 48px;">
+                <h5 class="modal-title" id="createFileTitle" style="float: left;">创建文件夹</h5>
+                <button type="button" class="close" onclick="hidenFileNameModal()">
+                    <span >&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="form-group">
+                        <label for="fileName" class="col-form-label">文件夹名称</label>
+                        <input type="text" autofocus class="form-control" id="fileName">
+                        <span id="promptInf" style="color: red;"></span>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="createFileSureBut" onclick="addFilePath()">确定</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div>
+    <div id="Mask"></div>
+    <div id="Progress" data-dimension="250" data-text="0%" data-info="导出进度" data-width="30" data-fontsize="38" data-percent="0" data-fgcolor="#61a9dc" data-bgcolor="#eee"></div>
+</div>
+
+
+
+<script type="text/javascript">
+
+    var dataTaskId="";
+    var dataSourceId="";
+    var dataSourceType="";
+    var dataTaskFilePath="";
+    var index;
+    var remoteZTree, rMenu;
+    var jsonObjectStr="";
+    // $.getScript("/console/shared/zTree_v3/js/jquery.ztree.excheck.js");
+    // $.getScript("/console/shared/zTree_v3/js/jquery.ztree.core.js");
+    $(document).ready(function(){
+        $("#dataModal").modal("show");
+        $.getScript("/console/datasync/js/editorLoadingJs.js");
+        loadBdDataList();
+      }
+    );
+
+    //加载本地数据源列表
+    function loadBdDataList() {
+        $.ajax({
+            type:"POST",
+            url:"/searchBdDirList.do",
+            data:{},
+            success:function (dataSession) {
+                var dataSessiobArray=dataSession.replace(/\[|]/g,'').split(',');
+                //  var dataSessiobArray=dataSession.substr(1,dataSession.length-4).split(',');
+                $("#selectBdDirID").append("<option style='width: 300px;display: none;'>请选择...</option>");
+                for(var i=0;i<dataSessiobArray.length;i++){
+                    var title=dataSessiobArray[i].substr(0, dataSessiobArray[i].indexOf('?*'));
+                    var uri=dataSessiobArray[i].substr(dataSessiobArray[i].indexOf('?*')+2,dataSessiobArray[i].length);
+                    $("#selectBdDirID").append("<option style=width:300px; value='"+uri.replace(/[\r\n]/g,"")+"'>"+title+"</option>");
+                }
+                intData();//初始化
+            },
+            error:function () {
+                console.log("请求失败")
+            }
+        })
+    };
+
+    //查询当前任务的基本信息-初始化
+    function intData(){
+        var taskId=this.document.activeElement.contentDocument.getElementById("taskIdHidden").value;
+        $.ajax({
+            type: "post",
+            url:"/searchTaskDetailById.do",
+            cache: false,
+            async: false,
+            data: {taskId: taskId},
+            success: function(data) {
+                 dataTaskId=JSON.parse(data).dataTask.dataTaskId;
+                 dataSourceId=JSON.parse(data).dataTask.dataSrc.dataSourceId;
+                 dataSourceType=JSON.parse(data).dataTask.dataSrc.databaseType;
+                 dataTaskFilePath=JSON.parse(data).dataTask.filePath;
+                $("#taskEditorTitle")[0].textContent="数据任务修改--("+JSON.parse(data).dataTask.dataTaskName+")";
+                $("select option[value='"+dataSourceType+"']").attr("selected","selected");//就选中对应的option,
+                 loadFileTreesByDataSource();
+            },
+            error: function() {
+                alert("出错了");
+            }
+        });
+    }
+
+    //列出本地数据源中的文件树
+    $("#selectBdDirID").on("change", function () {
+        console.log("进入到selectBdDirID的change事件处理函数中了");
+        var localDataSource = $("#selectBdDirID option:selected")[0].value;//获取数据库参数
+        $.ajax({
+            type:"POST",
+            url:"/getTreeOfDirList.do",
+            data:{
+                localDataSource: localDataSource
+            },
+            dataType: "text",
+            beforeSend:function(data){
+                index = layer.load(1, {
+                    shade: [0.5,'#fff'] //0.1透明度的白色背景
+                });
+            },
+            success: function (data) {
+                //console.log(data);
+                $('#bdDirDiv').empty();
+                $("#bdTableLabel").css("display", "block");//显示“选择资源”标签
+                $("#bdSubmitButton").css("display", "block"); //显示“提交”按钮
+                var coreData = JSON.parse(data).list;
+                var dataTaskFilePathArray=dataTaskFilePath.split(";");
+                for(var i=0;i<coreData.length;i++){
+                    for(var j=0;j<dataTaskFilePathArray.length;j++){
+                        if(coreData[i].id==dataTaskFilePathArray[j]){
+                            coreData[i].checked=true;
+                            coreData[i].open=true;
+                        }
+                    }
+                }
+                var zTreeObj = $.fn.zTree.getZTreeObj("treeDemo");
+                    zTreeObj.destroy();
+                //$.getScript("/console/shared/zTree_v3/js/jquery.ztree.all.js",function(){
+                    $.fn.zTree.init($("#treeDemo"), setting, coreData);
+                    $.fn.zTree.init($("#remoteTree"),remoteSetting,jsonObjectStr);
+                    $("#layui-layer-shade"+index+"").remove();
+                    $("#layui-layer"+index+"").remove();
+              //  });
+            },
+            error: function (data) {
+                console.log("获得本地目录中的文件树失败")
+            }
+        })
+    });
+
+    //关闭modal后隐藏锁定页面的div
+    $("#dataModal").on("hide.bs.modal",function(){
+        if(isIE()||isIE11()){
+            $(window.top.document.body)[0].ownerDocument.getElementById("pages").removeNode(true);
+            $(window.top.document.body)[0].ownerDocument.getElementById("backdropId").removeNode(true);
+            // if(document.getElementsByClassName("modal-backdrop fade in")!=null){
+            //     document.getElementsByClassName("modal-backdrop fade in")[0].removeNode(true);
+            // }
+        }else{
+            $(window.top.document.body)[0].ownerDocument.getElementById("pages").remove();
+            $(window.top.document.body)[0].ownerDocument.getElementById("backdropId").remove();
+            // if(document.getElementsByClassName("modal-backdrop fade in")!=null){
+            //     document.getElementsByClassName("modal-backdrop fade in")[0].remove();
+            // }
+        }
+        // $(window.top.document.body)[0].ownerDocument.getElementById("pages").remove();
+        // $(window.top.document.body)[0].ownerDocument.getElementById("backdropId").remove();
+    });
+
+    function loadFileTreesByDataSource(){
+        console.log("进入到selectBdDirID的change事件处理函数中了");
+        var localDataSource = $("#selectBdDirID option:selected")[0].value;//获取数据數據源参数
+
+        $.ajax({
+            type:"POST",
+            url:"/getEditTreeOfDirList.do",
+            data:{
+                localDataSource: localDataSource,
+                dataTaskFilePath:dataTaskFilePath,
+                dataTaskId:dataTaskId
+            },
+            dataType: "text",
+            beforeSend:function(data){
+                index = layer.load(1, {
+                    shade: [0.5,'#fff'] //0.1透明度的白色背景
+                });
+            },
+            success: function (data) {
+                $('#bdDirDiv').empty();
+                $("#bdTableLabel").css("display", "block");//显示“选择资源”标签
+                $("#bdTableLabel").css("display", "block");//显示“选择资源”标签
+                $("#bdSubmitButton").css("display", "block"); //显示“提交”按钮
+                var coreData = JSON.parse(data).nodeList;
+                jsonObjectStr = eval(JSON.parse(data).remoteFilePath);
+
+                var remotePath=JSON.parse(data).datatask.remoteuploadpath;
+                for(var i=0;i<jsonObjectStr.length;i++) {
+                    if (jsonObjectStr[i].id == remotePath) {
+                        jsonObjectStr[i].checked = "true";
+                    }
+                }
+
+                $.getScript("/console/shared/zTree_v3/js/jquery.ztree.all.js",function(){
+                    $.fn.zTree.init($("#treeDemo"), setting, coreData);
+                    $.fn.zTree.init($("#remoteTree"),remoteSetting,jsonObjectStr);
+                    remoteZTree = $.fn.zTree.getZTreeObj("remoteTree");
+
+                });
+                rMenu = $("#rMenu");
+                $("#layui-layer-shade"+index+"").remove();
+                $("#layui-layer"+index+"").remove();
+            },
+            error: function (data) {
+                console.log("获得本地目录中的文件树失败")
+            }
+        })
+    }
+
+    var setting = {
+        async: {
+            enable: true,
+            url:"/asyncGetNodes.do",
+            autoParam:["id", "pid", "name"],
+            dataFilter: filter
+        },
+        data: {
+            simpleData: {
+                enable: true,
+                idKey:'id',
+                pIdKey:'pid',
+                rootPId: 0
+            }
+        },
+        check: {
+            enable: true
+        },
+        callback : {
+            beforeAsync: beforeAsync,
+            onAsyncSuccess: onAsyncSuccess,
+            onAsyncError: onAsyncError,
+            onCheck : asyncAll
+        }
+    };
+
+    function filter(treeId, parentNode, childNodes) {
+        childNodes=eval(childNodes);
+        if(parentNode.checked==true){
+            for(var num=0;num<childNodes.length;num++){
+                childNodes[num].open=true;
+                childNodes[num].checked=true;
+            }
+        }
+        return childNodes;
+    }
+
+    var SubjectIndex;
+    //本地文件任务提交
+    function submitLocalFileData(){
+        var getCheckedFile = getChecedValueInLocalTree();//获取选中的文件
+        var getRemoteFile=getChecedValueInRemoteTree();//获取远程上传路径
+        if(getCheckedFile=="" || getCheckedFile ==null){
+            toastr["error"]("请选择文件！");
+            return;
+        }else if(getRemoteFile=="" || getRemoteFile==null){
+            toastr["error"]("请选择远程上传路径！");
+            return;
+        }else{
+            var connDataName = $("#selectBdDirID  option:selected")[0].text;//获取数据源
+            var connDataValue = $("#selectBdDirID  option:selected")[0].value;//获取数据源value
+            showPackProgress(0,0);
+            $.ajax({
+                type:"POST",
+                url:"/updateLocalTaskData.do",
+                timeout : 600000, //超时时间设置，单位毫秒
+                data:{
+                    connDataName:connDataName,
+                    connDataValue:connDataValue,
+                    getCheckedFile:getCheckedFile,
+                    dataTaskId:dataTaskId,
+                    dataSourceId:dataSourceId,
+                    getRemoteFile:getRemoteFile[0]
+                },
+                success:function (dataSession) {
+                    if(dataSession.replace(/[\r\n]/g,"")!="success"){
+                        toastr["error"]("任务信息更新失败！");
+                        // $("#layui-layer-shade"+index+"").remove();
+                       //  $("#layui-layer"+index+"").remove();
+                        return;
+                    }else{
+                        toastr["success"]("任务信息更新成功！");
+                        $("#dataModal").modal('hide');
+                      //   $("#layui-layer-shade"+SubjectIndex+"").remove();
+                    }
+                },
+                error:function () {
+                    console.log("请求超时！")
+                }
+            })
+            getProcess(dataTaskId,dataTaskId+ new Date().getTime());//获取上传进度
+        }
+        return;
+    }
+
+    //获取界面中所有被选中的radio
+    function getChecedValueInLocalTree() {
+        var pathsOfCheckedFiles = '';
+        var treeObj=$.fn.zTree.getZTreeObj("treeDemo"),
+            nodes=treeObj.getCheckedNodes(true),v="";
+        for(var i=0;i<nodes.length;i++){
+            pathsOfCheckedFiles=pathsOfCheckedFiles+nodes[i].id+";";
+        }
+        return pathsOfCheckedFiles;
+    }
+
+    //获取上传进度
+    function getProcess(keyID,souceID) {
+         $("#layui-layer"+SubjectIndex+"").remove();
+        var setout= setInterval(function () {
+            $.ajax({
+                url:"/getPackProcess.do",
+                type:"POST",
+                async:true,
+                data:{
+                    processId:keyID
+                },
+                success:function (dataReult) {
+                    var data=dataReult.replace(/[\r\n]/g,"");
+                    var process=JSON.parse(data).list[0];//上传进度
+                    var fileName="";//上传文件
+                    if(JSON.parse(data).list.length>=1){
+                        fileName=JSON.parse(data).list[1];//上传进度
+                    }
+                    $("#layui-layer"+index+"").html("");
+                    if(process >= 100){
+                        $("#Progress .circle-text").text(process+"%");
+                        $("#Progress .circle-info").text(fileName);
+                        clearInterval(setout);
+                        //parent.goToPage("datatask/dataTask.jsp");
+                        return;
+                    }
+                    $("#Progress .circle-text").text(process+"%");
+                    $("#Progress .circle-info").text(fileName);
+                }
+            })
+        },1000)
+    }
+
+    var isFirstExport=true;
+    //展示压缩进度
+    function showPackProgress(progress,filename){
+         $("#Mask").css("height",window.innerHeight);
+         $("#Mask").css("width",window.innerWidth);
+         $("#Mask").show();
+         if(isFirstExport){
+             $("#Progress").circliful();
+         }else{
+             $("#Progress .circle-text").text(progress+"%");
+             $("#Progress .circle-info").text(filename);
+             $("#Progress").show();
+         }
+    }
+
+    var remoteSetting = {
+        async: {
+            enable: false
+        },
+        edit: {
+            enable: true,
+            showRemoveBtn: false,
+            showRenameBtn: false
+        },
+        data: {
+            simpleData: {
+                enable: true,
+                idKey:'id',
+                pIdKey:'pid',
+                rootPId: 0
+            }
+        },
+        check: {
+            enable: true,
+            chkStyle: "radio",
+            radioType: "all"
+        },
+        callback : {
+            onRightClick: OnRightClick
+        }
+    };
+    function OnRightClick(event, treeId, treeNode) {
+        if (!treeNode && event.target.tagName.toLowerCase() != "button" && $(event.target).parents("a").length == 0) {
+            remoteZTree.cancelSelectedNode();
+            showRMenu("root", event.clientX, event.clientY);
+        } else if (treeNode && !treeNode.noR) {
+            remoteZTree.selectNode(treeNode);
+            showRMenu("node", event.clientX, event.clientY);
+        }
+    }
+
+    function showRMenu(type, x, y) {
+        $("#rMenu ul").show();
+        if (type=="root") {
+            $("#m_del").hide();
+            $("#m_check").hide();
+            $("#m_unCheck").hide();
+        } else {
+            $("#m_del").show();
+            $("#m_check").show();
+            $("#m_unCheck").show();
+        }
+
+        y += document.body.scrollTop;
+        x += document.body.scrollLeft;
+        y=y-107;
+        x=x-286;
+        rMenu.css({"top":y+"px", "left":x+"px", "visibility":"visible"});
+
+        $("body").bind("mousedown", onBodyMouseDown);
+    }
+    function hideRMenu() {
+        if (rMenu) rMenu.css({"visibility": "hidden"});
+        $("body").unbind("mousedown", onBodyMouseDown);
+    }
+    function onBodyMouseDown(event){
+        if (!(event.target.id == "rMenu" || $(event.target).parents("#rMenu").length>0)) {
+            rMenu.css({"visibility" : "hidden"});
+        }
+    }
+    var addCount = 1;
+    function addTreeNode(e) {
+        hideRMenu();
+        ShowCreateModal();
+
+    }
+
+    function addFilePath(){
+        var inputFileName = $("#fileName").val().trim();
+        if(inputFileName==null || inputFileName==""){
+            $("#promptInf")[0].textContent="文件夹名称不能为空！";
+            $("#fileName")[0].style.borderColor="red";
+            return;
+        }
+        var newNode = { name:""+inputFileName+""};
+        if (remoteZTree.getSelectedNodes()[0]) {
+            newNode.checked = false;
+            newNode.isParent=true;
+            newNode.id=remoteZTree.getSelectedNodes()[0].id+"/"+newNode.name;
+            remoteZTree.addNodes(remoteZTree.getSelectedNodes()[0], newNode);
+        } else {
+            newNode.isParent=true;
+            newNode.id=remoteZTree.getSelectedNodes()[0].id+"/"+newNode.name;
+            remoteZTree.addNodes(null, newNode);
+        }
+        $("#createFileMModal").modal("hide");
+    }
+    function removeTreeNode() {
+        hideRMenu();
+        var nodes = remoteZTree.getSelectedNodes();
+        if (nodes && nodes.length>0) {
+            if (nodes[0].children && nodes[0].children.length > 0) {
+                var msg = "要删除的节点是父节点，如果删除将连同子节点一起删掉。\n\n请确认！";
+                if (confirm(msg)==true){
+                    remoteZTree.removeNode(nodes[0]);
+                }
+            } else {
+                remoteZTree.removeNode(nodes[0]);
+            }
+        }
+    }
+    function checkTreeNode(checked) {
+        var nodes = remoteZTree.getSelectedNodes();
+        if (nodes && nodes.length>0) {
+            remoteZTree.checkNode(nodes[0], checked, true);
+        }
+        hideRMenu();
+    }
+    function resetTree() {
+        hideRMenu();
+        $.fn.zTree.init($("#remoteTree"), remoteSetting, jsonObjectStr);
+    }
+
+    function showRenameBtn(){
+
+        return treeNode.canRename;
+    }
+
+    // 修改弹出框的title, 显示弹框
+    function ShowCreateModal(title){
+        if(remoteZTree.getSelectedNodes()<=0){
+            toastr["error"]("请选择父节点！");
+            return;
+        }
+        $("#createFileTitle").text(title);
+        $('#createFileMModal').modal('show');
+    }
+    // 关闭弹框， 获取输入值，然后执行逻辑
+    $("#createFileSureBut").click(function (){
+        // $("#createFileMModal").modal("hide");
+        // var inputFileName = $("#fileName").val();
+        // console.log("input file name : " + inputFileName);
+    });
+    function hidenFileNameModal() {
+        $("#createFileMModal").modal("hide");
+    }
+
+    //获取界面中所有被选中的radio
+    function getChecedValueInRemoteTree() {
+        var pathsOfCheckedFiles = new Array();
+        var treeObj=$.fn.zTree.getZTreeObj("remoteTree"),
+            nodes=treeObj.getCheckedNodes(true),v="";
+        for(var i=0;i<nodes.length;i++){
+            pathsOfCheckedFiles.push(nodes[i].pid+"/"+nodes[i].name);
+        }
+        return pathsOfCheckedFiles;
+    }
+
+    var curStatus = "init", curAsyncCount = 0, asyncForAll = false,
+        goAsync = false;
+
+    function asyncAll(event, treeId, treeNode) {
+        if (!check()) {
+            return;
+        }
+        var zTree = $.fn.zTree.getZTreeObj("treeDemo");
+        if (false) {
+        } else {
+            var nodes=new Array([treeNode]);
+            asyncNodes(nodes[0]);
+        }
+    };
+
+    function asyncNodes(nodes) {
+        if (!nodes) return;
+        curStatus = "async";
+        var zTree = $.fn.zTree.getZTreeObj("treeDemo");
+        for (var i=0, l=nodes.length; i<l; i++) {
+            if (nodes[i].isParent && nodes[i].zAsync) {
+                asyncNodes(nodes[i].children);
+                // whetherChecked=false;
+            } else {
+                goAsync = true;
+                zTree.reAsyncChildNodes(nodes[i], "refresh", true);
+            }
+        }
+    };
+
+    function beforeAsync() {
+        curAsyncCount++;
+    }
+    function onAsyncSuccess(event, treeId, treeNode, msg) {
+        curAsyncCount--;
+        if (curStatus == "expand") {
+            expandNodes(treeNode.children);
+        } else if (curStatus == "async") {
+            asyncNodes(treeNode.children);
+        }
+
+        if (curAsyncCount <= 0) {
+            if (curStatus != "init" && curStatus != "") {
+                asyncForAll = true;
+            }
+            curStatus = "";
+        }
+    }
+    function onAsyncError(event, treeId, treeNode, XMLHttpRequest, textStatus, errorThrown) {
+        curAsyncCount--;
+
+        if (curAsyncCount <= 0) {
+            curStatus = "";
+            if (treeNode!=null) asyncForAll = true;
+        }
+    }
+    var curStatus = "init", curAsyncCount = 0, asyncForAll = false,
+        goAsync = false;
+
+    function expandNodes(nodes) {
+        if (!nodes) return;
+        curStatus = "expand";
+        var zTree = $.fn.zTree.getZTreeObj("treeDemo");
+        for (var i=0, l=nodes.length; i<l; i++) {
+            zTree.expandNode(nodes[i], true, false, false);
+            if (nodes[i].isParent && nodes[i].zAsync) {
+                expandNodes(nodes[i].children);
+            } else {
+                goAsync = true;
+            }
+        }
+    }
+
+    function check() {
+        if (curAsyncCount > 0) {
+            return false;
+        }
+        return true;
+    }
+
+    function isIE(){
+        if(!!window.ActiveXObject || "ActiveXObject" in window){
+            return true;
+        }else{
+            return false;
+        }
+    }
+    function isIE11(){
+        if((/Trident\/7\./).test(navigator.userAgent)){
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+
+
+
+</script>
+</body>
+
+</html>

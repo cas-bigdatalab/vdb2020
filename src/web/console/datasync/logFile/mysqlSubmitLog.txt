@@ -1,0 +1,86 @@
+2018/11/30 15:30:49:=========================导出流程开始========================
+###########SQL数据表结构:###########
+DROP TABLE IF EXISTS t_category ; 
+CREATE TABLE t_category(
+ID INT NOT NULL,
+NAME VARCHAR(20),
+SORT INT,
+ISNEWS INT,PRIMARY KEY(ID)
+);
+
+DROP TABLE IF EXISTS t_conceptword_20181015 ; 
+CREATE TABLE t_conceptword_20181015(
+id INT NOT NULL,
+word TEXT,
+wordtype VARCHAR(100),
+remark TEXT,
+updatetime DATETIME,
+createtime DATETIME,PRIMARY KEY(id)
+);
+
+DROP TABLE IF EXISTS t_category111 ;
+ CREATE TABLE t_category111(
+ID INT NOT NULL,
+NAME VARCHAR(20),
+SORT INT,
+ISNEWS INT 
+);
+
+
+###########SQL数据内容:###########
+INSERT INTO t_category VALUES ('1', '新闻', '2', '1');
+INSERT INTO t_category VALUES ('2', '公告', '3', '1');
+INSERT INTO t_category VALUES ('10', '关于我们', '8', '0');
+INSERT INTO t_category VALUES ('11', NULL, '0', '0');
+
+INSERT INTO t_conceptword_20181015 VALUES ('1', '搜索;查询;探索', '专业词汇', '', '2017-10-10 13:57:25.0', '2017-09-27 18:57:29.0');
+INSERT INTO t_conceptword_20181015 VALUES ('2', '老铁;哥们', '专业词汇', '', '2017-10-10 13:57:52.0', '2017-09-27 18:58:15.0');
+INSERT INTO t_conceptword_20181015 VALUES ('3', '番茄;西红柿', '网络热词', '阿斯顿发生地方范生的发生防守打法', '2017-10-10 14:20:30.0', '2017-09-27 18:58:42.0');
+INSERT INTO t_conceptword_20181015 VALUES ('4', '马铃薯;土豆', '专业词汇', '', '2017-10-10 13:57:43.0', '2017-09-27 18:59:26.0');
+INSERT INTO t_conceptword_20181015 VALUES ('6', 'undefined;23444;33333333;sdddddddd', '专业词汇', 'werrrrrrrrrrrrr', '2017-09-28 19:33:18.0', '2017-09-28 19:33:18.0');
+INSERT INTO t_conceptword_20181015 VALUES ('7', 'undefined;11;22;44', '专业词汇', '33', '2017-09-28 19:35:15.0', '2017-09-28 19:35:15.0');
+INSERT INTO t_conceptword_20181015 VALUES ('8', 'undefined;null;空值', '专业词汇', '3', '2017-10-10 13:58:32.0', '2017-09-28 19:36:54.0');
+INSERT INTO t_conceptword_20181015 VALUES ('9', '1;2;3;4;5', '其他', '666', '2017-10-10 13:47:03.0', '2017-09-28 19:37:36.0');
+INSERT INTO t_conceptword_20181015 VALUES ('10', '43;43', '专业词汇', '33434', '2017-09-28 19:37:53.0', '2017-09-28 19:37:53.0');
+INSERT INTO t_conceptword_20181015 VALUES ('11', 'ewr;rew', '专业词汇', 'wer', '2017-09-28 19:37:56.0', '2017-09-28 19:37:56.0');
+INSERT INTO t_conceptword_20181015 VALUES ('12', '1;12', '专业词汇', '234', '2017-09-29 13:44:51.0', '2017-09-29 10:35:30.0');
+INSERT INTO t_conceptword_20181015 VALUES ('13', '555;666', '近义词', '777', '2017-10-10 14:19:22.0', '2017-09-29 13:45:04.0');
+INSERT INTO t_conceptword_20181015 VALUES ('14', '1234;234wer;1324rew;2314qewr', '近义词', '421234231443', '2017-10-13 14:32:51.0', '2017-10-10 14:40:18.0');
+
+INSERT INTO t_category111 VALUES ('1', '新闻', '2', '1');
+INSERT INTO t_category111 VALUES ('2', '公告', '3', '1');
+INSERT INTO t_category111 VALUES ('10', '关于我们', '8', '0');
+INSERT INTO t_category111 VALUES ('11', NULL, '0', '0');
+
+
+导出成功，result = true
+
+2018/11/30 15:30:49:=========================导出流程结束========================
+
+2018/11/30 15:30:49:=========================打包流程开始========================
+
+2018/11/30 15:30:49:.zip:文件数据源,开始打包文件..."+ "
+
+2018/11/30 15:30:49:打包成功
+
+2018/11/30 15:30:49:=========================打包流程结束========================
+
+2018/11/30 15:30:50:=========================上传流程开始========================
+
+数据任务名称为：20181130152956
+
+ftpDataTaskId20181130152956上传状态:Upload_New_File_Success
+
+2018/11/30 15:30:50:=========================导入流程开始========================
+
+2018/11/30 15:30:50:导入成功
+
+2018/11/30 15:30:50:=========================导入流程结束========================
+
+2018/11/30 15:30:50:=========================上传流程结束========================
+
+
+
+
+
+

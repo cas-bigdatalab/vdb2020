@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>任务详情</title>
+
+    <style>
+     .modal-dialog{
+         top:4% !important;
+         width: 60% !important;
+     }
+    </style>
+</head>
+
+<body>
+<!-- 模态框（Modal） -->
+<div id="dataModal" class="modal fade" tabindex="-1" data-width="400">
+    <div class="modal-dialog" >
+        <div class="modal-content">
+            <div class="modal-header bg-primary">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="taskEditorTitle"></h4>
+            </div>
+            <div class="modal-body" style="min-height:500px;max-height:76%;overflow: auto;">
+                <!--数据库-->
+                <div style="width:100%;">
+                    <div id="sjk" class="form-group" style="width: 86%;margin-left: 140px;">
+                        <label  >数据库列表:</label>
+                        <select id="selectId" class="form-control selectpicker" style="width: 200px;display: inline !important;"></select>
+                        <div>
+                            <label id="tableLabel" style="margin-top: 18px">&nbsp;&nbsp;选择表资源</label>
+                            <div id="tablesDiv" style="margin-left: 40px;height:260px;overflow-y:auto;"></div>
+                        </div>
+                        <div style="width: 100%;height: 40px;margin-top: 20px; " id="sqlSearchDiv">
+                            <label>sql查询</label>
+                            <input id="sqlInputBox0" class="form-control sqlStatements" style="width: 300px;display: inline !important;" type="text"/>
+                            <input id="createNewTableName0" class="form-control sqlStatements" style="width: 100px;display: inline !important;" type="text" placeholder="请输入表名"/>
+                            <button type="button" class="btn blue preview" onclick="showPreviewModal(sqlInputBox0)" >预览</button>
+                            <button type="button" class="btn green" onclick="addSqlInput()"><span class="glyphicon glyphicon-plus"></span>sql查询</button>
+                            <!--<button type="button" class="btn green" onclick="submitSqlData()">提交</button>-->
+                        </div>
+                    </div>
+
+                <div class="modal-footer">
+                    <button type="button" onclick="submitSqlData()" class="btn  btn-danger">保存</button>
+                    <button type="button" data-dismiss="modal" class="btn  btn-danger">取消</button>
+                </div>
+            </div>
+        </div>
+       </div>
+    </div>
+</div>
+
+<!-- 模态框（Modal）修改 -->
+<div id="hiddenModal">
+
+</div>
+
+
+
+<input type="hidden" id="sql"/>
+<input type="hidden" id="connData"/>
+<input type="hidden" id="dataTaskName"/>
+
+<script>
+    var idNum=0;
+    var index=0;
+    var sqlString="";//JSON.parse(data).dataTask.sqlString;
+    var selectdTableNames="";//JSON.parse(data).dataTask.tableName
+    var newTableNames="";//JSON.parse(data).dataTask.sqlTableNameEn
+    var dataSourceValue="";//JSON.parse(data).dataTask.dataSrc.dataSourceName
+    var dataTaskName="";//JSON.parse(data).dataTask.dataTaskName
+    var dataTaskId="";
+    var dataSourceName="";
+    var dataSourceId="";
+    $(function(){
+        $("#dataModal").modal("show");
+        // $("#editorModal").modal("show");
+    });
+    startStep1();//启动步骤--加载数据源
+
+    //加载数据源
+    function startStep1() {
+        $.ajax({
+            type:"POST",
+            url:"/searchDataList.do",
+            cache : false,
+            async: false,
+            success:function (dataSession) {
+                var dataSessiobArray=dataSession.replace(/\[|]/g,'').split(',');
+                $("#selectId").append("<option style='width: 300px;display: none;'>请选择...</option>");
+                for(var i=0;i<dataSessiobArray.length;i++){
+                    $("#selectId").append("<option style=width: 300px; value='"+ dataSessiobArray[i].replace(/[\r\n]/g,"")+"'>"+ dataSessiobArray[i].substr(0, dataSessiobArray[i].indexOf('$'))+"</option>");
+                }
+                statrStep2();
+            },
+            error:function () {
+                console.log("请求失败")
+            }
+        })
+    };
+
+    //查询当前任务的基本信息
+    function statrStep2(){
+        var taskId=this.document.activeElement.contentDocument.getElementById("taskIdHidden").value;
+        $.ajax({
+            type: "post",
+            url:"/searchTaskDetailById.do",
+            cache: false,
+            async: false,
+            data: {taskId: taskId},
+            success: function(data) {
+                 sqlString=JSON.parse(data).dataTask.sqlString;//任务sql语句
+                 selectdTableNames=JSON.parse(data).dataTask.tableName;//选中的表名称
+                 newTableNames=JSON.parse(data).dataTask.sqlTableNameEn;//新建的表名称
+                 dataSourceValue=JSON.parse(data).dataTask.dataSrc.databaseType;//数据源value
+                 dataSourceName=JSON.parse(data).dataTask.dataSrc.dataSourceName;//数据源mingheng
+                dataSourceId=JSON.parse(data).dataTask.dataSrc.dataSourceId;//数据源mingheng
+                 dataTaskName=JSON.parse(data).dataTask.dataTaskName;//数据源value
+                dataTaskId=JSON.parse(data).dataTask.dataTaskId;
+                $("#taskEditorTitle")[0].textContent="数据任务修改--("+dataTaskName+")";
+                $("select option[value='"+dataSourceValue+"']").attr("selected","selected");//就选中对应的option,
+                 loadTablesByDataSource();
+            },
+            error: function() {
+                alert("出错了");
+            }
+        });
+    }
+
+    //选中数据库，加载tables
+    $("#selectId").on("change",function () {
+        var connData = $("#selectId option:selected")[0].value;//获取数据库参数
+        $.ajax({
+            type:"POST",
+            url:"/searchTables.do",
+            cache: false,
+            async:false,
+            data:{
+                connData:connData
+            },
+            beforeSend:function(data){
+                index = layer.load(1, {
+                    shade: [0.5,'#fff'] //0.1透明度的白色背景
+                });
+            },
+            success:function (data) {
+                if(data.trim()=="数据库连接异常！"){
+                    $("#layui-layer-shade"+index+"").remove();
+                    $("#layui-layer"+index+"").remove();
+                    toastr["error"](data);
+                    return;
+                }
+                $('#tablesDiv').empty();//清空div
+                document.getElementById("tableLabel").style.display="block";//显示“选择表资源标签”
+                document.getElementById("sqlSearchDiv").style.display="block";//显示“选择表资源标签”
+                var obj=JSON.parse(data).tableList;
+                for(var i=0;i<obj.length;i++){
+                    $("#tablesDiv").append("<div style='width: 200px;float:left;'><input type='checkbox' value='"+obj[i]+"'>"+obj[i]+"</input></div>");
+                }
+
+                if(selectdTableNames!="" && selectdTableNames!=null){//任务中有选中的表
+                    var selectdTableNamesArray=selectdTableNames.split(";");
+                    for(var i=0;i<selectdTableNamesArray.length;i++){
+                        $("input:checkBox[value="+selectdTableNamesArray[i]+"]").attr("checked","checked");
+                    }
+                }
+
+                if(newTableNames!="" && newTableNames!=null){//任务中有导出SQL语句(同时必定有对应数量sql语句)
+                    var newTablesArray=newTableNames.split(";");
+                    var sqlStringArray=sqlString.split(";");
+                    if(sqlStringArray.length-1>idNum+1){
+                        for(var i=1;i<sqlStringArray.length-idNum;i++){
+                            addSqlInputInit();
+                        }
+                    }
+
+                    for(var i=0;i<sqlStringArray.length-1;i++){
+                        $("#sqlInputBox"+i+"")[0].value=sqlStringArray[i];
+                        $("#createNewTableName"+i+"")[0].value=newTablesArray[i];
+                    }
+                }
+                $("#layui-layer-shade"+index+"").remove();
+                $("#layui-layer"+index+"").remove();
+            },
+            error:function () {
+                console.log("请求失败")
+            }
+        })
+    });
+
+    //关闭modal后隐藏锁定页面的div
+    $("#dataModal").on("hide.bs.modal",function(){
+        if(isIE()||isIE11()){
+            $(window.top.document.body)[0].ownerDocument.getElementById("pages").removeNode(true);
+            $(window.top.document.body)[0].ownerDocument.getElementById("backdropId").removeNode(true);
+            if(document.getElementsByClassName("modal-backdrop fade in")!=null){
+                document.getElementsByClassName("modal-backdrop fade in")[0].removeNode(true);
+            }
+        }else{
+            $(window.top.document.body)[0].ownerDocument.getElementById("pages").remove();
+            $(window.top.document.body)[0].ownerDocument.getElementById("backdropId").remove();
+            if(document.getElementsByClassName("modal-backdrop fade in")!=null){
+                document.getElementsByClassName("modal-backdrop fade in")[0].remove();
+            }
+        }
+
+    });
+
+    //添加sql语句
+    function addSqlInputInit(){
+        idNum=idNum+1;
+        var divId="sqlSearchDiv"+idNum;
+        var divSqlId="sqlInputBox"+idNum+"";
+        $("#sjk").append("<div style=\"width: 100%;height: 40px;margin-top: 20px;margin-bottom: 20px; \" id=\""+divId+"\">\n" +
+            " <label>sql查询</label>\n" +
+            " <input id=\""+divSqlId+"\" class=\"form-control sqlStatements\" style=\"width: 300px;display: inline !important;\" type=\"text\"/>\n" +
+            " <input id=\"createNewTableName"+idNum+"\"  class=\"form-control sqlStatements\" style=\"width: 100px;display: inline !important;\" type=\"text\" placeholder=\"请输入表名\"/>\n" +
+            " <button type=\"button\" class=\"btn blue preview\" onclick=\"showPreviewModal("+divSqlId+")\" >预览</button>\n" +
+            " <button type=\"button\" class=\"btn blue preview\" onclick=\"deleteSqlSearchDiv("+divId+")\" >删除</button>\n" +
+            " </div>");
+
+    };
+            //添加sql语句
+    function addSqlInput(){
+        if(($('#createNewTableName'+idNum+'').val()=="" || $('#createNewTableName'+idNum+'').val()==null)&&($('#sqlInputBox'+idNum+'').val()=="" || $('#sqlInputBox'+idNum+'').val()==null)){
+            toastr["error"]("请补充已有“sql查询”后再添加新的SQL查询！");
+            return;
+        }
+        idNum=idNum+1;
+        var divId="sqlSearchDiv"+idNum;
+        var divSqlId="sqlInputBox"+idNum+"";
+        $("#sjk").append("<div style=\"width: 100%;height: 40px;margin-top: 20px;margin-bottom: 20px; \" id=\""+divId+"\">\n" +
+            " <label>sql查询</label>\n" +
+            " <input id=\""+divSqlId+"\" class=\"form-control sqlStatements\" style=\"width: 300px;display: inline !important;\" type=\"text\"/>\n" +
+            " <input id=\"createNewTableName"+idNum+"\"  class=\"form-control sqlStatements\" style=\"width: 100px;display: inline !important;\" type=\"text\" placeholder=\"请输入表名\"/>\n" +
+            " <button type=\"button\" class=\"btn blue preview\" onclick=\"showPreviewModal("+divSqlId+")\" >预览</button>\n" +
+            " <button type=\"button\" class=\"btn blue preview\" onclick=\"deleteSqlSearchDiv("+divId+")\" >删除</button>\n" +
+            " </div>");
+    };
+
+    //删除新增的sql语句输入框
+    function deleteSqlSearchDiv(idDom){
+        idNum=idNum-1;
+        idDom.remove();
+    }
+
+    //根据查询出的datasource加载对应的表
+    function loadTablesByDataSource(){
+        var connData = $("#selectId option:selected")[0].value;//获取数据库参数
+        $.ajax({
+            type:"POST",
+            url:"/searchTables.do",
+            cache: false,
+            async:false,
+            data:{
+                connData:connData
+            },
+            success:function (data) {
+                if(data.trim()=="数据库连接异常！"){
+                    toastr["error"](data);
+                    return;
+                }
+                $('#tablesDiv').empty();//清空div
+                document.getElementById("tableLabel").style.display="block";//显示“选择表资源标签”
+                document.getElementById("sqlSearchDiv").style.display="block";//显示“选择表资源标签”
+                var obj=JSON.parse(data).tableList;
+                for(var i=0;i<obj.length;i++){
+                    $("#tablesDiv").append("<div style='width: 200px;float:left;'><input type='checkbox' value='"+obj[i]+"'>"+obj[i]+"</input></div>");
+                }
+
+                if(selectdTableNames!="" && selectdTableNames!=null){//任务中有选中的表
+                    var selectdTableNamesArray=selectdTableNames.split(";");
+                    for(var i=0;i<selectdTableNamesArray.length;i++){
+                        $("input:checkBox[value="+selectdTableNamesArray[i]+"]").attr("checked","checked");
+                    }
+                }
+
+                if(newTableNames!="" && newTableNames!=null){//任务中有导出SQL语句(同时必定有对应数量sql语句)
+                    var newTablesArray=newTableNames.split(";");
+                    var sqlStringArray=sqlString.split(";");
+                    if(sqlStringArray.length-1>idNum+1){
+                        for(var i=1;i<sqlStringArray.length-idNum;i++){
+                            addSqlInputInit();
+                        }
+                    }
+
+                    for(var i=0;i<sqlStringArray.length-1;i++){
+                        $("#sqlInputBox"+i+"")[0].value=sqlStringArray[i];
+                        $("#createNewTableName"+i+"")[0].value=newTablesArray[i];
+                    }
+                }
+            },
+            error:function () {
+                console.log("请求失败")
+            }
+        })
+    }
+
+    //预览sql结果
+    function showPreviewModal(sqlId){
+        var connData = $("#selectId option:selected")[0].value;//获取数据库参数
+        if(connData=="请选择..." || connData==null){
+            alert("请选择数据库！");
+            return;
+        }
+        var sql=document.getElementById(sqlId.id).value;//获取输入框中的sql语句
+        if(sql=="" || sql==null){
+            alert("请输入sql！");
+            return;
+        }
+        $.ajax({
+            type:"POST",
+            url:"/searchDataBySql.do",
+            cache: false,
+            data:{
+                connData:connData,
+                sql:sql
+            },
+            success:function (data) {
+                addModal();
+                if(data.trim()=="sql语句错误！"){
+                    toastr["error"]("SQL语句或表名错误！\n请检查sql语句及表名称是否正确");
+                    // alert("SQL语句或表名错误！\n请检查sql语句及表名称是否正确");
+                }else{
+                    $('#editorModal').modal('show');
+                    var dataArray=data.split("?*$*?");
+                    if(dataArray.length>=2){
+                        dataList=null;
+                        columnsList=null;
+                        dataList=eval(dataArray[0]);
+                        columnsList=eval(dataArray[1]);
+                        loadPreviewBySql(dataList,columnsList);
+                    }
+                }
+            },
+            error:function () {
+                console.log("请求失败")
+            }
+        })
+    }
+
+    //加载sql
+    function loadPreviewBySql(dataList,columnsList){//加载sql预览
+        $('#table').bootstrapTable('destroy');
+        $('#table').bootstrapTable({
+            striped: true,
+            pagination: true,
+            sortable: true,
+            sortOrder: "asc",
+            pageNumber: 1,
+            pageSize: 10,                       //每页的记录行数（*）
+            //pageList: [ 25, 50, 100],
+            minimumCountColumns: 5,
+            search:false,
+            showRefresh:false,
+            uniqueId: "no",
+            locale: "zh-CN",
+            searchOnEnterKey:true,
+            detailView: false,
+            columns:columnsList
+        });
+        $('#table').bootstrapTable('load', dataList);
+    };
+
+    function removeModal(){
+        document.getElementsByClassName("modal-backdrop fade in")[1].remove();
+        $("#editorModal").remove();
+    }
+
+    function addModal(){
+        $("#hiddenModal").append("<div class=\"modal fade\" id=\"editorModal\" tabindex=\"-1\" role=\"dialog\" aria-labelledby=\"myModalLabel\" aria-hidden=\"true\" style=\"z-index:99999\">\n" +
+            "    <div class=\"modal-dialog\" style=\"width: 60%;height:50%;\">\n" +
+            "        <div class=\"modal-content\">\n" +
+            "            <div class=\"modal-header\">\n" +
+            "                <button type=\"button\" class=\"close\" data-dismiss=\"modal\" aria-hidden=\"true\">\n" +
+            "                    &times;\n" +
+            "                </button>\n" +
+            "                <h4 class=\"modal-title\" id=\"myModalLabel\">\n" +
+            "                    表数据预览\n" +
+            "                </h4>\n" +
+            "            </div>\n" +
+            "            <div class=\"modal-body\">\n" +
+            "                <table id=\"table\" class=\"table table-bordered table-hover table-striped\" style=\"text-overflow: ellipsis;overflow: hidden;white-space: nowrap;\">\n" +
+            "\n" +
+            "                </table>\n" +
+            "            </div>\n" +
+            "            <div class=\"modal-footer\">\n" +
+            "                <button type=\"button\" class=\"btn btn-default\" onclick=\"removeModal()\">关闭\n" +
+            "                </button>\n" +
+            "            </div>\n" +
+            "        </div><!-- /.modal-content -->\n" +
+            "    </div><!-- /.modal -->\n" +
+            "</div>");
+    };
+
+    // 数据库任务提交
+    function submitSqlData(title){
+        index=index+1;
+        var checked= checkTaskData();
+        if(checked==true){
+            var dateDef = new Date();
+            var month=dateDef.getMonth()+1;
+            var dataTaskName = ""+dateDef.getFullYear()+month+dateDef.getDate()+dateDef.getHours()+dateDef.getMinutes()+dateDef.getSeconds();
+            var connDataName = $("#selectId option:selected")[0].text;//获取数据源
+            var connDataValue = $("#selectId option:selected")[0].value;//获取数据源value
+            var sql=sqlArray;//获取sql语句
+            var createNewTableName=sqlTableArray;//获取新建表名
+            var checkedValue=getChecedValue();
+            $.ajax({
+                type:"POST",
+                url:"/updateSqlData.do",
+                data:{
+                    connDataName:connDataName,
+                    taskName:dataTaskName,
+                    sql:sql,
+                    createNewTableName:createNewTableName,
+                    checkedValue:checkedValue,
+                    connDataValue:connDataValue,
+                    dataTaskName:dataTaskName,
+                    dataTaskId:dataTaskId,
+                    dataSourceName:connDataName,
+                    dataSourceId:dataSourceId
+                },
+                beforeSend:function(data){
+                    index = layer.load(1, {
+                        shade: [0.5,'#fff'] //0.1透明度的白色背景
+                    });
+                },
+                success:function (dataSession) {
+                    if(dataSession.replace(/[\r\n]/g,"")!="success"){
+                        toastr["error"]("sql语句错误，请“预览”调试！");
+                        $("#layui-layer-shade"+index+"").remove();
+                        $("#layui-layer"+index+"").remove();
+                        $('#sqlInputBox'+dataSession.split("？")[0]+'')[0].style.borderColor="red";
+                        return;
+                    }else{
+                        toastr["success"]("保存成功！");
+                        $("#dataModal").modal('hide');
+                        $("#layui-layer-shade"+index+"").remove();
+                        $("#layui-layer"+index+"").remove();
+                    }
+                },
+                error:function () {
+                    console.log("请求失败")
+                }
+            })
+        }else
+            return;
+    }
+
+    //数据源（数据库）任务新建检测
+    function checkTaskData() {
+        var checked=true;
+        var checkedValue=getChecedValue();
+        sqlArray="";
+        sqlTableArray="";
+        for(var i=0;i<=idNum;i++){//sql非空校驗
+            $('#sqlInputBox'+i+'')[0].style.borderColor="";
+            $('#createNewTableName'+i+'')[0].style.borderColor="";
+            //sql框均为空时--sql语句 表名
+            if(($('#createNewTableName'+i+'').val()=="" || $('#createNewTableName'+i+'').val()==null)&&($('#sqlInputBox'+i+'').val()=="" || $('#sqlInputBox'+i+'').val()==null)){
+
+            }else{
+                if($('#sqlInputBox'+i+'').val()=="" || $('#sqlInputBox'+i+'').val()==null){
+                    $('#sqlInputBox'+i+'')[0].style.borderColor="red";
+                    toastr["error"]("请输入sql语句！");//alert("请输入新建表名！");
+                    return;
+                }else{
+                    sqlArray=sqlArray+$('#sqlInputBox'+i+'').val()+";";
+                }
+
+                if($('#createNewTableName'+i+'').val()=="" || $('#createNewTableName'+i+'').val()==null){
+                    $('#createNewTableName'+i+'')[0].style.borderColor="red";
+                    toastr["error"]("请输入新建表名！");//alert("请输入新建表名！");
+                    return;
+                }else{
+                    sqlTableArray=sqlTableArray+$('#createNewTableName'+i+'').val()+";";
+                }
+            }
+        }
+        var tableNameArray=sqlTableArray.split(";");
+        for(var i=0;i<tableNameArray.length;i++){
+            for(var j=0;j<=tableNameArray.length;j++){
+                if((tableNameArray[i]==tableNameArray[j])&&(i!=j)){
+                    toastr["error"]("新建表名不能相同！");
+                    $('#createNewTableName'+i+'')[0].style.borderColor="red";
+                    $('#createNewTableName'+j+'')[0].style.borderColor="red";
+                    return;
+                }
+            }
+        }
+
+        if((sqlArray=="" || sqlTableArray=="")&&(checkedValue==null || checkedValue=="")){
+            checked=false;
+            toastr["error"]("请至少输入sql语句或选择表资源");//alert("请至少输入sql语句或选择表资源！");
+            return;
+        }
+        return checked;
+    }
+
+    function getChecedValue() {
+        var i = 0;
+        var values = '';
+        var checked = $("input:checked"); //获取所有被选中的标签元素
+        for (i = 0; i < checked.length; i++)
+        { //将所有被选中的标签元素的值保存成一个字符串，以逗号隔开
+            if (i < checked.length - 1 && $("input:checked")[i].type=='checkbox')
+            {
+                values += checked[i].value + ';';
+            }
+            else if($("input:checked")[i].type=='checkbox')
+            {
+                values += checked[i].value;
+            }
+        }
+        return values;
+    }
+
+    //根据浏览器的不同添加不同的移除方法
+    function removeNode(){
+
+    }
+        function isIE(){
+            if(!!window.ActiveXObject || "ActiveXObject" in window){
+                return true;
+            }else{
+                return false;
+            }
+        }
+        function isIE11(){
+            if((/Trident\/7\./).test(navigator.userAgent)){
+                return true;
+            }else{
+                return false;
+            }
+        }
+
+
+
+</script>
+</body>
+
+</html>
